@@ -1,0 +1,24 @@
+{
+  "name": "dns-server",
+  "version": "1.0.0",
+  "description": "main dns server(stage1)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node dist/index.js",
+    "dev": "concurrently \"tsc --watch\" \"nodemon --watch src --ext ts --exec ts-node src/index.ts\""
+  },
+  "author": "guru",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^22.6.1",
+    "concurrently": "^9.0.1",
+    "eslint": "^9.11.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "nodemon": "^3.1.7",
+    "prettier": "^3.3.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
+}
