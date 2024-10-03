@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import DNSLookup from "./components/Dns-lookup"
 
-const App: React.FC = () => {
+function App() {
+
   return (
-    <div className='text-center bg-red-300'>
-      <h1>Welcome to My React App with TypeScript!</h1>
-    </div>
+    <DNSLookup />
   );
 }
 
