@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 
+
 const DNSLookup: React.FC = () => {
   const [domain, setDomain] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const response = await fetch(`http://localhost:5000/dns-lookup?domain=${domain}`);
     const data = await response.json();
-    alert(`Message: ${data.message}, Domain: ${data.domain}`);
+    if(data?.ip && data?.ip !== "Domain not found"){
+       window.location.href = `http://${data.ip}`;
+    }else {
+      alert(`Domain not found: ${data?.message}`);
+    }
   };
   return (
     <div className='h-screen flex justify-center items-center'>
