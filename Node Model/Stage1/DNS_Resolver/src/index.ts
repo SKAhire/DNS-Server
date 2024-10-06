@@ -2,13 +2,13 @@ import * as dgram from 'dgram'; // Importing UDP module from Node.js to handle U
 import express from 'express';  // Importing Express to handle HTTP requests
 import cors from 'cors';  // Importing CORS to handle cross-origin requests from the frontend
 
-// ---------------------- DNS Server (UDP) ----------------------
+// ---------------------- DNS Resolver (UDP) ----------------------
 
-// Create the UDP server to act as the DNS server
+// Create the UDP server to act as the DNS Resolver
 const udpServer: dgram.Socket = dgram.createSocket('udp4');  // Creating a UDP socket using IPv4
 
 // Sample DNS records (hardcoded)
-// These are mappings of domain names to IP addresses, similar to how an actual DNS server works
+// These are mappings of domain names to IP addresses, similar to how an actual DNS Resolver works
 const dnsRecords: { [domain: string]: { ip: string, ttl: number, type: string } } = {
   'google.com': { ip: '172.217.14.206', ttl: 3600, type: 'A' },  // A record for google.com
   'example.com': { ip: '93.184.216.34', ttl: 3600, type: 'A' },  // A record for example.com
@@ -80,7 +80,7 @@ httpServer.get('/dns-lookup', (req, res) => {
   const message = Buffer.from(domain);
   let responseSent = false;  // Flag to track whether a response has been sent
 
-  // Send the domain query to the local UDP DNS server
+  // Send the domain query to the local UDP DNS Resolver
   udpClient.send(message, 53, 'localhost', (err) => {
     if (err) {
       // If sending the message fails, return an error response
@@ -100,7 +100,7 @@ httpServer.get('/dns-lookup', (req, res) => {
       // Add a timeout in case the UDP server doesn't respond within 2 seconds
       setTimeout(() => {
         if (!responseSent) {  // Ensure the timeout doesn't send another response if already sent
-          res.status(504).json({ error: 'No response from DNS server' });  // Return timeout error
+          res.status(504).json({ error: 'No response from DNS Resolver' });  // Return timeout error
           responseSent = true;  // Mark response as sent
         }
       }, 2000);  // Timeout period of 2 seconds
