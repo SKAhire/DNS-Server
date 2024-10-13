@@ -7,8 +7,7 @@ import cors from 'cors';  // Importing CORS to handle cross-origin requests from
 // Create the UDP server to act as the DNS server
 const udpServer: dgram.Socket = dgram.createSocket('udp4');  // Creating a UDP socket using IPv4
 
-// Sample DNS records (hardcoded)
-// These are mappings of domain names to IP addresses, similar to how an actual DNS server works
+// Sample DNS records (mock for now)
 const dnsRecords: { [domain: string]: { ip: string, ttl: number, type: string } } = {
   'google.com': { ip: '172.217.14.206', ttl: 3600, type: 'A' },  // A record for google.com
   'example.com': { ip: '93.184.216.34', ttl: 3600, type: 'A' },  // A record for example.com
@@ -18,55 +17,11 @@ const dnsRecords: { [domain: string]: { ip: string, ttl: number, type: string } 
   'openstreetmap.org': { ip: '130.117.76.9', ttl: 3600, type: 'A' },     // A record for openstreetmap.org
 };
 
-// Event listener for error handling on the UDP server
-udpServer.on('error', (err: Error) => {
-  console.error(`server error:\n${err.stack}`);  // Log error stack
-  udpServer.close();  // Close the server on error
-});
-
-// Event listener for handling incoming messages (DNS queries)
-udpServer.on('message', (msg: Buffer, rinfo: dgram.RemoteInfo) => {
-  console.log(`server got: ${msg} from ${rinfo.address}:${rinfo.port}`);
-  
-  // Extract domain from the received message
-  const domain = msg.toString();
-
-  // Look up the domain in the DNS records
-  const record = dnsRecords[domain];
-
-  // If the domain is found in the records
-  if (record) {
-    // Create a response containing the IP address and send it back to the client
-    const response = Buffer.from(record.ip);
-    udpServer.send(response, rinfo.port, rinfo.address, (err) => {
-      if (err) console.error('Failed to send DNS response');  // Log any errors in sending the response
-    });
-  } else {
-    // If the domain is not found, respond with "Domain not found"
-    console.log(`Domain ${domain} not found in records.`);
-    const response = Buffer.from('Domain not found');
-    udpServer.send(response, rinfo.port, rinfo.address);  // Send response
-  }
-});
-
-// Event listener for when the UDP server starts listening on the specified port
-udpServer.on('listening', () => {
-  const address = udpServer.address();  // Get server address info
-  console.log(`UDP server listening ${address.address}:${address.port}`);
-});
-
-// Bind the UDP server to port 53 (standard DNS port)
-udpServer.bind(53, () => console.log("DNS is on port 53"));
-
-// ---------------------- HTTP Server (Express) ----------------------
-
 // Create the HTTP server using Express
 const httpServer = express();
+httpServer.use(cors()); // Enable CORS
 
-// Enable CORS for cross-origin requests (useful when connecting from a React frontend)
-httpServer.use(cors());
-
-// Create a UDP client to send DNS queries to the UDP server
+// Create a UDP client for communication with the Root Server
 const udpClient = dgram.createSocket('udp4');
 
 // Route to handle DNS lookup requests from the frontend
@@ -75,38 +30,50 @@ httpServer.get('/dns-lookup', (req, res) => {
 
   // Validate if domain is provided in the request
   if (!domain) {
-    res.status(400).json({ error: 'Domain query parameter is missing or invalid' });  // Return error if missing
+    res.status(400).json({ error: 'Domain query parameter is missing or invalid' });
     return;
   }
 
-  // Prepare the domain query to be sent to the UDP server
+  // Step 1: Send the domain query to the Root Server instead of DNS records
   const message = Buffer.from(domain);
   let responseSent = false;  // Flag to track whether a response has been sent
 
-  // Send the domain query to the local UDP DNS server
-  udpClient.send(message, 53, 'localhost', (err) => {
+  // Send the domain query to the Root Server (on port 3001, assuming the root server listens there)
+  udpClient.send(message, 3001, 'localhost', (err) => {
     if (err) {
       // If sending the message fails, return an error response
-      res.status(500).json({ error: 'UDP message failed' });
+      res.status(500).json({ error: 'Failed to send message to Root Server' });
     } else {
-      console.log(`UDP message sent for domain: ${domain}`);
+      console.log(`Message sent to Root Server for domain: ${domain}`);
 
-      // Listen for a response from the UDP server
+      // Listen for a response from the Root Server (which contains the TLD Server IP)
       udpClient.once('message', (msg) => {
-        if (!responseSent) {  // Ensure only one response is sent
-          const ip = msg.toString();  // Convert the received buffer to a string (the IP address)
-          res.json({ message: 'Domain resolved', domain, ip });  // Send the IP as the response
+        if (!responseSent) {
+          const tldServerIp = msg.toString();  // This is the TLD Server IP (mock)
+          console.log(`Received TLD server IP: ${tldServerIp}`);
+
+          // Step 2: Forward the query to the TLD server (simulated for now)
+          // For this mock, we'll assume the same TLD server is storing the actual IP (from `dnsRecords`)
+          const record = dnsRecords[domain];
+
+          if (record) {
+            // Send the IP to the client
+            res.json({ message: 'Domain resolved', domain, ip: record.ip });
+          } else {
+            res.status(404).json({ error: 'Domain not found in TLD Server' });
+          }
+
           responseSent = true;  // Mark response as sent
         }
       });
 
-      // Add a timeout in case the UDP server doesn't respond within 2 seconds
+      // Add a timeout in case the Root Server doesn't respond within 2 seconds
       setTimeout(() => {
-        if (!responseSent) {  // Ensure the timeout doesn't send another response if already sent
-          res.status(504).json({ error: 'No response from DNS server' });  // Return timeout error
-          responseSent = true;  // Mark response as sent
+        if (!responseSent) {
+          res.status(504).json({ error: 'No response from Root Server' });
+          responseSent = true;
         }
-      }, 2000);  // Timeout period of 2 seconds
+      }, 2000);  // Timeout of 2 seconds
     }
   });
 });
