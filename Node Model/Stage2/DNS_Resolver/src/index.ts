@@ -34,8 +34,14 @@ httpServer.get('/dns-lookup', (req, res) => {
     return;
   }
 
-  // Step 1: Send the domain query to the Root Server instead of DNS records
-  const message = Buffer.from(domain);
+  // Step 1: Prepare the query object
+  const query = { 
+    id: Date.now(), // Unique Transaction ID (using timestamp for simplicity)
+    flags: 0,      // Flags for query/response
+    questions: [{ domain, type: 'A' }]  // A record type query
+  };
+
+  const message = Buffer.from(JSON.stringify(query));
   let responseSent = false;  // Flag to track whether a response has been sent
 
   // Send the domain query to the Root Server (on port 3001, assuming the root server listens there)
