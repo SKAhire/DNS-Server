@@ -1,6 +1,4 @@
 import * as dgram from 'dgram'; // Importing UDP module from Node.js to handle UDP sockets
-import express from 'express';  // Importing Express to handle HTTP requests
-import cors from 'cors';  // Importing CORS to handle cross-origin requests from the frontend
 
 // ---------------------- Root Server (UDP) ----------------------
 
