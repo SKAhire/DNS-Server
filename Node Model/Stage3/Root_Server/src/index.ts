@@ -13,7 +13,6 @@ const dnsRecords: { [tld: string]: { tldServerIp: string, ttl: number, type: str
   ".com": { tldServerIp: "192.168.1.100", ttl: 3600, type: "NS" },  // NS record for .com
   ".org": { tldServerIp: "192.168.1.101", ttl: 3600, type: "NS" },  // NS record for .org
   ".net": { tldServerIp: "192.168.1.102", ttl: 3600, type: "NS" },  // NS record for .net
-  ".edu": { tldServerIp: "192.168.1.103", ttl: 3600, type: "NS" }   // NS record for .edu
 };
 
 // Event listener for handling incoming messages (DNS queries)

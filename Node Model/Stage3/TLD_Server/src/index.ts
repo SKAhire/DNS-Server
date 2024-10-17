@@ -20,19 +20,19 @@ interface DnsRecords {
 // Sample DNS records (hardcoded)
 // These are mappings of TLDs (top-level domains) to TLD server IP addresses
 const dnsRecords: DnsRecords  = {
-    ".com": {
+    "192.168.1.100": {
       "domains": {
         "google.com": { "authServerIp": "203.0.113.1", "ttl": 3600, "type": "A" },
         "amazon.com": { "authServerIp": "203.0.113.2", "ttl": 3600, "type": "A" }
       }
     },
-    ".org": {
+    "192.168.1.101": {
       "domains": {
         "wikipedia.org": { "authServerIp": "203.0.113.3", "ttl": 3600, "type": "A" },
         "openstreetmap.org": { "authServerIp": "203.0.113.4", "ttl": 3600, "type": "A" }
       }
     },
-    ".net": {
+    "192.168.1.102": {
       "domains": {
         "example.net": { "authServerIp": "203.0.113.5", "ttl": 3600, "type": "A" },
         "test.net": { "authServerIp": "203.0.113.6", "ttl": 3600, "type": "A" }
@@ -47,9 +47,9 @@ udpServer.on('message', (msg: Buffer, rinfo: dgram.RemoteInfo) => {
   // Step 1: Parse the incoming DNS query message
   const query = JSON.parse(msg.toString());
   const domain = query.questions[0].domain;  // Extract the domain name from the query
-  const tld = domain.slice(domain.lastIndexOf("."));  // Extract the TLD (e.g., .com)
+  const tldIp = query.questions[0].tldServerIp;  // Extract the TLD (e.g., .com)
 
-  console.log(`Received query for domain: ${domain} (TLD: ${tld})`);
+  console.log(`Received query for domain: ${domain} (TLD: ${tldIp})`);
 
 });
 
