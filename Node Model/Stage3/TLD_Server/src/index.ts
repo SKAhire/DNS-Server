@@ -48,8 +48,30 @@ udpServer.on('message', (msg: Buffer, rinfo: dgram.RemoteInfo) => {
   const query = JSON.parse(msg.toString());
   const domain = query.questions[0].domain;  // Extract the domain name from the query
   const tldIp = query.questions[0].tldServerIp;  // Extract the TLD (e.g., .com)
+  // Parse the string to an object
+  const parsedTldIp = JSON.parse(tldIp);
 
-  console.log(`Received query for domain: ${domain} (TLD: ${tldIp})`);
+  // Access the actual IP from the parsed object
+  const actualTldIp = parsedTldIp.tldServerIp;
+  const record = dnsRecords[actualTldIp]?.domains[domain];
+  // Step 3: Send a response back to the DNS resolver
+  if (record) {
+    console.log(record, "this are record")
+    // If the TLD is found, send back the TLD server IP
+    const response = { authServerIp: record.authServerIp, ttl: record.ttl, type: record.type };
+    udpServer.send(Buffer.from(JSON.stringify(response)), rinfo.port, rinfo.address, (err) => {
+      if (err) {
+        console.error('Failed to send DNS response');
+      } else {
+        console.log(`Sent Auth server IP for ${actualTldIp}: ${record.authServerIp}`);
+      }
+    });
+  } else {
+    // If the TLD is not found, respond with an error
+    const errorResponse = { error: 'TLD not found' };
+    udpServer.send(Buffer.from(JSON.stringify(errorResponse)), rinfo.port, rinfo.address);
+    console.log(`Auth server for ${actualTldIp} not found in records.`);
+  }
 
 });
 
