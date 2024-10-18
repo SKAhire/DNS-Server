@@ -25,7 +25,7 @@ httpServer.use(cors());  // Enable CORS
 const udpClient = dgram.createSocket('udp4');
 
 // Route to handle DNS lookup requests from the frontend
-httpServer.get('/dns-lookup', (req, res) => {
+httpServer.get('/dns-lookup', async (req, res) => {
   const domain = req.query.domain as string | undefined;
 
   // Validate if the domain is provided in the request
@@ -42,80 +42,56 @@ httpServer.get('/dns-lookup', (req, res) => {
   };
 
   const rootMessage = Buffer.from(JSON.stringify(query));
-  let responseSent = false;  // Flag to track whether a response has been sent
   let tldServerIp: string | undefined;
 
-  // Send the domain query to the Root Server (assuming the root server listens on port 3001)
-  udpClient.send(rootMessage, 3001, 'localhost', (err) => {
-    if (err) {
-      res.status(500).json({ error: 'Failed to send message to Root Server' });
-    } else {
-      console.log(`Message sent to Root Server for domain: ${domain}`);
-
-      // Listen for a response from the Root Server (which contains the TLD Server IP)
-      udpClient.once('message', (msg) => {
-        if (!responseSent) {
-          tldServerIp = msg.toString();  // This is the TLD Server IP (mock)
-          console.log(`Received TLD server IP: ${tldServerIp}`);
-
-          if (tldServerIp !== undefined) {
-            // Step 2: Prepare the TLD query object
-            const tldQuery = {
-              id: Date.now(),  // Unique Transaction ID
-              flags: 0,        // Flags for query/response
-              questions: [{ domain, type: 'A', tldServerIp }]  // A record type query
-            };
-
-            const tldMessage = Buffer.from(JSON.stringify(tldQuery));
-
-            // Send the domain query to the TLD Server (assuming it listens on port 3013)
-            udpClient.send(tldMessage, 3013, 'localhost', (err) => {
-              if (err) {
-                res.status(500).json({ error: 'Failed to send message to TLD Server' });
-              } else {
-                console.log(`Message sent to TLD Server for domain: ${domain}`);
-
-                // Listen for a response from the TLD Server (which contains the Auth Server IP)
-                udpClient.once('message', (msg) => {
-                  if (!responseSent) {
-                    const authServerIP = msg.toString();  // This is the Auth Server IP (mock)
-                    console.log(`Received Auth server IP: ${authServerIP}`);
-
-                    // Step 3: Forward the query to the Auth server (simulated for now)
-                    const record = dnsRecords[domain];
-
-                    if (record) {
-                      res.json({ message: 'Domain resolved', domain, ip: record.ip });
-                    } else {
-                      res.status(404).json({ error: 'Domain not found in TLD Server' });
-                    }
-
-                    responseSent = true;  // Mark response as sent
-                  }
-                });
-
-                // Add a timeout in case the TLD Server doesn't respond within 2 seconds
-                setTimeout(() => {
-                  if (!responseSent) {
-                    res.status(504).json({ error: 'No response from TLD Server' });
-                    responseSent = true;
-                  }
-                }, 2000);  // Timeout of 2 seconds
-              }
-            });
-          }
+  async function sendDnsQuery(message: Buffer, port: number, host: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      udpClient.send(message, port, host, (err) => {
+        if (err) {
+          return reject(err);
         }
+        udpClient.once('message', (msg) => resolve(msg.toString()));  // Resolve when message is received
       });
-
-      // Add a timeout in case the Root Server doesn't respond within 2 seconds
-      setTimeout(() => {
-        if (!responseSent) {
-          res.status(504).json({ error: 'No response from Root Server' });
-          responseSent = true;
+  
+      setTimeout(() => reject(new Error('Timeout')), 2000);  // Timeout after 2 seconds
+    });
+  }
+  try {
+    
+    tldServerIp = await sendDnsQuery(rootMessage, 3001, 'localhost')  // This is the TLD Server IP (mock)
+    console.log(`Received TLD server IP: ${tldServerIp}`);
+  
+    if (tldServerIp !== undefined) {
+      // Step 2: Prepare the TLD query object
+      const tldQuery = {
+        id: Date.now(),  // Unique Transaction ID
+        flags: 0,        // Flags for query/response
+        questions: [{ domain, type: 'A', tldServerIp }]  // A record type query
+      };
+  
+      const tldMessage = Buffer.from(JSON.stringify(tldQuery));
+  
+      try {
+        const authServerIP: string | undefined = await sendDnsQuery(tldMessage, 3013, 'localhost')
+        if(authServerIP !== undefined){
+          console.log(authServerIP, 'authserverIP')
+            // Step 3: Forward the query to the Auth server (simulated for now)
+            const record = dnsRecords[domain];
+  
+            if (record) {
+              res.json({ message: 'Domain resolved', domain, ip: record.ip });
+            } else {
+              res.status(404).json({ error: 'Domain not found in TLD Server' });
+            }
         }
-      }, 2000);  // Timeout of 2 seconds
+      } catch (error) {
+        console.log(error)
+      }
     }
-  });
+  } catch (error) {
+  console.log(error)   
+  }
+  
 });
 
 // Start the HTTP server on port 5000
