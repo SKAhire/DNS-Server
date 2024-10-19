@@ -53,7 +53,6 @@ udpServer.on('message', (msg: Buffer, rinfo: dgram.RemoteInfo) => {
   const authParse = JSON.parse(authObj);
   const actualIP = authParse.authServerIp; 
   const record = authDnsRecords[actualIP].domains[domain]
-  console.log(record, "this are record")
   if (record) {
     // If the Authoritative is found, send back the Authoritative server IP
     const response = { ip: record.ip, ttl: record.ttl, type: record.type };

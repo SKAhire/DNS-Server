@@ -56,7 +56,6 @@ udpServer.on('message', (msg: Buffer, rinfo: dgram.RemoteInfo) => {
   const record = dnsRecords[actualTldIp]?.domains[domain];
   // Step 3: Send a response back to the DNS resolver
   if (record) {
-    console.log(record, "this are record")
     // If the TLD is found, send back the TLD server IP
     const response = { authServerIp: record.authServerIp, ttl: record.ttl, type: record.type };
     udpServer.send(Buffer.from(JSON.stringify(response)), rinfo.port, rinfo.address, (err) => {

@@ -1,12 +1,9 @@
 import * as dgram from 'dgram';  // Importing UDP module from Node.js to handle UDP sockets
 import express from 'express';   // Importing Express to handle HTTP requests
 import cors from 'cors';         // Importing CORS to handle cross-origin requests from the frontend
-import { json } from 'stream/consumers';
 
 // ---------------------- DNS Server (UDP) ----------------------
 
-// Create the UDP server to act as the DNS server
-const udpServer: dgram.Socket = dgram.createSocket('udp4');  // Creating a UDP socket using IPv4
 
 
 // Create the HTTP server using Express
@@ -75,10 +72,8 @@ httpServer.get('/dns-lookup', async (req, res) => {
   
       const authMessage = Buffer.from(JSON.stringify(authQuery));
   
-          console.log(authServerIP, 'authserverIP')
             // Step 3: Forward the query to the Auth server (simulated for now)
             const record : string | undefined = await sendDnsQuery(authMessage, 7499, 'localhost')
-            console.log(record, 'this is record')
             if (record) {
               const recordIp = JSON.parse(record)
               res.json({ message: 'Domain resolved', domain, ip: recordIp.ip });
