@@ -1,6 +1,7 @@
 import * as dgram from 'dgram';  // Importing UDP module from Node.js to handle UDP sockets
 import express from 'express';   // Importing Express to handle HTTP requests
 import cors from 'cors';         // Importing CORS to handle cross-origin requests from the frontend
+import { json } from 'stream/consumers';
 
 // ---------------------- DNS Server (UDP) ----------------------
 
@@ -69,7 +70,7 @@ httpServer.get('/dns-lookup', async (req, res) => {
       const authQuery = {
         id: Date.now(),  // Unique Transaction ID
         flags: 0,        // Flags for query/response
-        questions: [{ domain, type: 'A', tldServerIp, authServerIP }]  // A record type query
+        questions: [{ domain, type: 'A', authServerIP }]  // A record type query
       };
   
       const authMessage = Buffer.from(JSON.stringify(authQuery));
@@ -79,7 +80,8 @@ httpServer.get('/dns-lookup', async (req, res) => {
             const record : string | undefined = await sendDnsQuery(authMessage, 7499, 'localhost')
             console.log(record, 'this is record')
             if (record) {
-              res.json({ message: 'Domain resolved', domain, ip: record });
+              const recordIp = JSON.parse(record)
+              res.json({ message: 'Domain resolved', domain, ip: recordIp.ip });
             } else {
               res.status(404).json({ error: 'Domain not found in TLD Server' });
             }
